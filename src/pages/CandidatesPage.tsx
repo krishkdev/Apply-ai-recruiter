@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import FitTag, { getFitLevel } from "../components/FitTag";
+import CandidateCard from "../components/CandidateCard";
 import { useCandidates } from "../context/CandidateContext";
 import { mockJobs } from "../mock/data";
 
@@ -139,30 +140,18 @@ export default function CandidatesPage() {
       </div>
 
       {/* ── Mobile card list (< md) ── */}
-      <div className="md:hidden space-y-2">
+      <div className="md:hidden space-y-3">
         {displayed.map((c) => {
           const jobId = getJobId(c.id);
-          const jobTitle = JOB_MAP[jobId] ?? "Unknown";
-          const stage = stages[c.id];
+          const jobRequiredSkills = mockJobs.find((j) => j.id === jobId)?.requiredSkills ?? [];
           return (
-            <Link
+            <CandidateCard
               key={c.id}
-              to={`/jobs/${jobId}/candidates/${c.id}/resume`}
-              className="block bg-white border border-gray-200 rounded-lg px-4 py-3.5 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
-                  <p className="text-xs text-gray-400 truncate mt-0.5">{jobTitle}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <FitTag score={c.fitScore} />
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STAGE_CHIP[stage] ?? "bg-gray-100 text-gray-500"}`}>
-                    {stage}
-                  </span>
-                </div>
-              </div>
-            </Link>
+              candidate={c}
+              stage={stages[c.id]}
+              jobId={jobId}
+              requiredSkills={jobRequiredSkills}
+            />
           );
         })}
         {displayed.length === 0 && (

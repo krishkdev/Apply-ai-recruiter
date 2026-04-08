@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import Breadcrumb from "../components/Breadcrumb";
 import JobTabs from "../components/JobTabs";
-import FitTag from "../components/FitTag";
+import CandidateCard from "../components/CandidateCard";
 import { useJobs } from "../context/JobsContext";
 import { useCandidates } from "../context/CandidateContext";
 import { type Stage } from "../mock/data";
@@ -157,21 +157,15 @@ export default function PipelinePage() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`bg-white rounded-md border border-gray-200 px-3 py-2.5 select-none transition-shadow ${
-                                  snapshot.isDragging
-                                    ? "shadow-lg ring-1 ring-gray-300"
-                                    : "shadow-sm hover:shadow-md"
-                                }`}
+                                className={snapshot.isDragging ? "shadow-lg ring-1 ring-indigo-200 rounded-md" : ""}
                               >
-                                <p className="text-xs font-medium text-gray-900 leading-tight truncate">
-                                  {candidate.name}
-                                </p>
-                                <p className="text-xs text-gray-400 truncate mt-0.5">
-                                  {candidate.email}
-                                </p>
-                                <div className="mt-2">
-                                  <FitTag score={candidate.fitScore} />
-                                </div>
+                                <CandidateCard
+                                  candidate={candidate}
+                                  stage={stage}
+                                  jobId={jobId!}
+                                  requiredSkills={job?.requiredSkills ?? []}
+                                  variant="kanban"
+                                />
                               </div>
                             )}
                           </Draggable>

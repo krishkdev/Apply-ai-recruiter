@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import FitTag from "../components/FitTag";
+import CandidateCard from "../components/CandidateCard";
 import { useCandidates } from "../context/CandidateContext";
 import { useJobs } from "../context/JobsContext";
 import { type Stage } from "../mock/data";
@@ -38,8 +38,6 @@ export default function PipelineOverviewPage() {
 
   const [jobFilter, setJobFilter] = useState<string>("all");
   const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const jobMap = Object.fromEntries(jobs.map((j) => [j.id, j.title]));
 
   const addToast = (message: string, variant: Toast["variant"], undo?: () => void) => {
     const id = ++toastCounter;
@@ -131,8 +129,8 @@ export default function PipelineOverviewPage() {
                       >
                         <div className="space-y-2">
                           {col.map((candidate, index) => {
-                            const jobId = getJobId(candidate.id);
-                            const jobTitle = jobMap[jobId] ?? "Unknown";
+                            const cJobId = getJobId(candidate.id);
+                            const cJob = jobs.find((j) => j.id === cJobId);
 
                             return (
                               <Draggable key={candidate.id} draggableId={candidate.id} index={index}>
@@ -141,19 +139,15 @@ export default function PipelineOverviewPage() {
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
-                                    className={`bg-white rounded-md border border-gray-200 px-3 py-2.5 select-none transition-shadow ${
-                                      snapshot.isDragging
-                                        ? "shadow-lg ring-1 ring-gray-300"
-                                        : "shadow-sm hover:shadow-md"
-                                    }`}
+                                    className={snapshot.isDragging ? "shadow-lg ring-1 ring-indigo-200 rounded-md" : ""}
                                   >
-                                    <p className="text-xs font-medium text-gray-900 leading-tight truncate">
-                                      {candidate.name}
-                                    </p>
-                                    <p className="text-[11px] text-gray-400 truncate mt-0.5">{jobTitle}</p>
-                                    <div className="mt-2">
-                                      <FitTag score={candidate.fitScore} />
-                                    </div>
+                                    <CandidateCard
+                                      candidate={candidate}
+                                      stage={stage}
+                                      jobId={cJobId}
+                                      requiredSkills={cJob?.requiredSkills ?? []}
+                                      variant="kanban"
+                                    />
                                   </div>
                                 )}
                               </Draggable>

@@ -15,7 +15,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen" style={{ background: "#f8f8f7" }}>
       {/* Mobile top navbar */}
       <MobileNavbar onHamburgerClick={() => setMobileOpen(true)} />
 

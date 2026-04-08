@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Breadcrumb from "../components/Breadcrumb";
-import FitTag, { getFitLevel } from "../components/FitTag";
+import { getFitLevel } from "../components/FitTag";
 import JobTabs from "../components/JobTabs";
+import CandidateCard from "../components/CandidateCard";
 import { useJobs } from "../context/JobsContext";
 import { useCandidates } from "../context/CandidateContext";
 import { type Stage } from "../mock/data";
@@ -10,14 +11,6 @@ import { type Stage } from "../mock/data";
 // ── Stage config ────────────────────────────────────────────────────────────
 
 const STAGES: Stage[] = ["Shortlisted", "Interviewing", "Offer", "Hired", "Rejected"];
-
-const STAGE_PILL: Record<Stage, { active: string; inactive: string }> = {
-  Shortlisted:  { active: "bg-gray-200 text-gray-800 border-gray-300",       inactive: "border border-gray-200 text-gray-400 hover:bg-gray-50" },
-  Interviewing: { active: "bg-blue-100 text-blue-700 border-blue-200",       inactive: "border border-blue-100 text-blue-400 hover:bg-blue-50" },
-  Offer:        { active: "bg-purple-100 text-purple-700 border-purple-200", inactive: "border border-purple-100 text-purple-400 hover:bg-purple-50" },
-  Hired:        { active: "bg-green-100 text-green-700 border-green-200",    inactive: "border border-green-100 text-green-400 hover:bg-green-50" },
-  Rejected:     { active: "bg-red-50 text-red-600 border-red-200",           inactive: "border border-red-100 text-red-300 hover:bg-red-50" },
-};
 
 const STAGE_CHIP: Record<Stage, string> = {
   Shortlisted:  "bg-gray-100 text-gray-600",
@@ -31,7 +24,6 @@ const STAGE_CHIP: Record<Stage, string> = {
 
 export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { jobs } = useJobs();
   const job = jobs.find((j) => j.id === id);
   const { candidates, statuses, stages, notes, moveStage, updateNote, toggleReviewed } = useCandidates();
@@ -119,6 +111,40 @@ export default function JobDetail() {
 
         <JobTabs jobId={id!} active="shortlist" />
 
+        {/* ── AI Summary Banner ── */}
+        {candidates.length > 0 && (() => {
+          const strongCount   = candidates.filter((c) => getFitLevel(c.fitScore) === "strong").length;
+          const possibleCount = candidates.filter((c) => getFitLevel(c.fitScore) === "possible").length;
+          const weakCount     = candidates.filter((c) => getFitLevel(c.fitScore) === "weak").length;
+          return (
+            <div
+              className="mb-5 border rounded-lg px-4 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3"
+              style={{ background: "var(--ai-accent-light)", borderColor: "var(--ai-accent-border)" }}
+            >
+              <div className="flex items-center gap-2 shrink-0">
+                <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1L7.5 4.5L11 6L7.5 7.5L6 11L4.5 7.5L1 6L4.5 4.5L6 1Z" fill="#6366f1" />
+                </svg>
+                <span className="text-sm font-medium" style={{ color: "var(--ai-accent)" }}>
+                  Claude analyzed {candidates.length} candidates for this role
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                  {strongCount} strong matches
+                </span>
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                  {possibleCount} need review
+                </span>
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-500 border border-red-100">
+                  {weakCount} don't qualify
+                </span>
+              </div>
+              <span className="text-[11px] text-gray-400 sm:ml-auto shrink-0">Last scored 2 hours ago</span>
+            </div>
+          );
+        })()}
+
         {/* ── Pipeline summary bar ── */}
         <div className="flex items-center gap-2 flex-wrap mb-5">
           <button
@@ -200,150 +226,26 @@ export default function JobDetail() {
 
             {/* ── Candidate cards ── */}
             <div className="space-y-3">
-              {displayed.map((candidate, index) => {
-                const isReviewed = statuses[candidate.id] === "REVIEWED";
-                const currentStage = stages[candidate.id];
-                const isNotesOpen = notesOpen[candidate.id];
-                const savedNote = notes[candidate.id];
-                const draft = notesDraft[candidate.id] ?? "";
-                const isDirty = draft !== (savedNote ?? "");
-
-                return (
-                  <div
-                    key={candidate.id}
-                    className="border border-gray-200 rounded-lg px-4 sm:px-6 py-4 sm:py-5 bg-white"
-                  >
-                    {/* Top row: rank · name · fit tag · mark reviewed */}
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex items-start gap-4">
-                        <span className="text-xs font-mono text-gray-400 mt-0.5 w-6 shrink-0">
-                          #{index + 1}
-                        </span>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-gray-900">{candidate.name}</p>
-                            <FitTag score={candidate.fitScore} />
-                          </div>
-                          <p className="text-xs text-gray-400 mt-0.5">{candidate.email}</p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => toggleReviewed(candidate.id)}
-                        className={`shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md border transition-colors ${
-                          isReviewed
-                            ? "bg-gray-900 text-white border-gray-900"
-                            : "text-gray-600 border-gray-200 hover:bg-gray-50"
-                        }`}
-                      >
-                        {isReviewed && (
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                        {isReviewed ? "Reviewed" : "Mark Reviewed"}
-                      </button>
-                    </div>
-
-                    {/* Stage pipeline pills */}
-                    <div className="pl-10 flex items-center gap-1 flex-wrap mb-4">
-                      {STAGES.map((stage) => {
-                        const isActive = currentStage === stage;
-                        return (
-                          <button
-                            key={stage}
-                            onClick={() => moveStage(candidate.id, stage)}
-                            className={`text-xs px-2.5 py-0.5 rounded-full border transition-colors ${
-                              isActive ? STAGE_PILL[stage].active : STAGE_PILL[stage].inactive
-                            }`}
-                          >
-                            {stage}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* AI brief */}
-                    <div className="pl-10 mb-3">
-                      <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-md px-3.5 py-3 leading-relaxed">
-                        {candidate.brief}
-                      </p>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="pl-10 mb-3">
-                      {!isNotesOpen ? (
-                        savedNote ? (
-                          <div>
-                            <p className="text-xs text-gray-600 bg-amber-50 border border-amber-100 rounded-md px-3.5 py-3 leading-relaxed whitespace-pre-wrap">
-                              {savedNote}
-                            </p>
-                            <button
-                              onClick={() => openNotes(candidate.id)}
-                              className="mt-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              Edit note
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => openNotes(candidate.id)}
-                            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            + Add note
-                          </button>
-                        )
-                      ) : (
-                        <div>
-                          <textarea
-                            rows={3}
-                            value={draft}
-                            onChange={(e) =>
-                              setNotesDraft((prev) => ({ ...prev, [candidate.id]: e.target.value }))
-                            }
-                            placeholder="Add a private note about this candidate…"
-                            className="w-full border border-gray-200 rounded-md px-3 py-2 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none"
-                            autoFocus
-                          />
-                          <div className="flex items-center gap-3 mt-2">
-                            <button
-                              onClick={() => saveNote(candidate.id)}
-                              className="text-xs font-medium bg-gray-900 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-colors"
-                            >
-                              Save note
-                            </button>
-                            <button
-                              onClick={() => setNotesOpen((prev) => ({ ...prev, [candidate.id]: false }))}
-                              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                            {isDirty && (
-                              <span className="text-xs text-gray-400 italic">Unsaved</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Secondary actions */}
-                    <div className="pl-10 flex items-center gap-4">
-                      <button
-                        onClick={() => navigate(`/jobs/${id}/candidates/${candidate.id}/resume`)}
-                        className="text-xs font-medium text-gray-700 border border-gray-200 hover:bg-gray-50 px-3 py-1.5 rounded-md transition-colors"
-                      >
-                        View Resume
-                      </button>
-                      <button
-                        onClick={() => navigate(`/jobs/${id}/candidates/${candidate.id}/assessment`)}
-                        className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
-                      >
-                        Why this rating?
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {displayed.map((candidate, index) => (
+                <CandidateCard
+                  key={candidate.id}
+                  candidate={candidate}
+                  stage={stages[candidate.id]}
+                  jobId={id!}
+                  requiredSkills={job?.requiredSkills ?? []}
+                  rank={index + 1}
+                  isReviewed={statuses[candidate.id] === "REVIEWED"}
+                  onToggleReviewed={() => toggleReviewed(candidate.id)}
+                  onMoveStage={(s) => moveStage(candidate.id, s)}
+                  note={notes[candidate.id]}
+                  notesDraft={notesDraft[candidate.id] ?? ""}
+                  isNotesOpen={!!notesOpen[candidate.id]}
+                  onOpenNotes={() => openNotes(candidate.id)}
+                  onSaveNote={() => saveNote(candidate.id)}
+                  onCancelNotes={() => setNotesOpen((prev) => ({ ...prev, [candidate.id]: false }))}
+                  onChangeDraft={(text) => setNotesDraft((prev) => ({ ...prev, [candidate.id]: text }))}
+                />
+              ))}
             </div>
           </>
         )}
